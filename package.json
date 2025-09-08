@@ -1,0 +1,30 @@
+{
+  "name": "sitecopy",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc -b && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "lodash-es": "^4.17.21",
+    "monaco-editor": "^0.52.2",
+    "monaco-plugin-emmet": "^1.0.4",
+    "monaco-tailwindcss": "^0.6.1",
+    "openai": "^5.19.1",
+    "prettier": "^3.6.2",
+    "vue": "^3.5.18"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.13",
+    "@types/lodash-es": "^4.17.12",
+    "@vitejs/plugin-vue": "^6.0.1",
+    "@vue/tsconfig": "^0.7.0",
+    "tailwindcss": "^4.1.13",
+    "typescript": "~5.8.3",
+    "vite": "^7.1.2",
+    "vue-tsc": "^3.0.5"
+  }
+}
