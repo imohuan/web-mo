@@ -1,6 +1,7 @@
 import { ref, computed } from "vue";
 import OpenAI from "openai";
 import { useLocalStorage } from "@vueuse/core";
+import type { HistoryItem } from "./useCodeEditor";
 
 export interface ChatMessage {
   id: string;
@@ -11,19 +12,13 @@ export interface ChatMessage {
   isStreaming?: boolean;
 }
 
-export interface CodeHistoryItem {
-  code: string;
-  timestamp: number;
-  title?: string;
-}
-
 export interface ChatSession {
   id: number;
   title: string;
   messages: ChatMessage[];
   createdAt: Date;
   currentCode: string;
-  codeHistory: CodeHistoryItem[];
+  codeHistory: HistoryItem[];
   currentHistoryIndex: number;
 }
 
@@ -178,8 +173,8 @@ export function useChat() {
     try {
       const options = {
         apiKey: "sk-U3SKSHcCuyi6eDtR0h9QjZ05VVVi8hPIinlme8yRfafN6BS0",
-        // baseURL: `https://yunwu.ai/v1`,
-        baseURL: `http://localhost:3001/v1`,
+        baseURL: `https://yunwu.ai/v1`,
+        // baseURL: `http://localhost:3001/v1`,
         dangerouslyAllowBrowser: true,
       };
 
@@ -360,75 +355,34 @@ export function useChat() {
     }
   };
 
-  const addToCodeHistory = (chatId: number, code: string, title?: string) => {
-    const chat = chatHistory.value.find((chat) => chat.id === chatId);
-    if (chat) {
-      // 如果代码没有变化，不添加
-      if (chat.codeHistory[chat.currentHistoryIndex]?.code === code) {
-        return;
-      }
-
-      // 删除当前位置之后的所有历史记录
-      if (chat.currentHistoryIndex < chat.codeHistory.length - 1) {
-        chat.codeHistory = chat.codeHistory.slice(0, chat.currentHistoryIndex + 1);
-      }
-
-      // 添加新的历史记录
-      const newHistoryItem = {
-        code,
-        timestamp: Date.now(),
-        title: title || "代码版本"
-      };
-      chat.codeHistory.push(newHistoryItem);
-      chat.currentHistoryIndex = chat.codeHistory.length - 1;
-
-      // 限制历史记录大小
-      const maxHistorySize = 50;
-      if (chat.codeHistory.length > maxHistorySize) {
-        chat.codeHistory.shift();
-        chat.currentHistoryIndex--;
-      }
-    }
-  };
-
   const getCurrentCode = (chatId: number): string => {
     const chat = chatHistory.value.find((chat) => chat.id === chatId);
     return chat?.currentCode || defaultCode;
   };
 
-  const getCodeHistory = (chatId: number) => {
+  // 获取当前对话的历史记录管理对象，供 useCodeEditor 使用
+  const getCurrentChatHistoryManager = (chatId: number) => {
     const chat = chatHistory.value.find((chat) => chat.id === chatId);
-    return chat?.codeHistory || [];
-  };
+    if (!chat) return null;
 
-  const selectCodeHistoryItem = (chatId: number, index: number) => {
-    const chat = chatHistory.value.find((chat) => chat.id === chatId);
-    if (chat && index >= 0 && index < chat.codeHistory.length) {
-      chat.currentHistoryIndex = index;
-      chat.currentCode = chat.codeHistory[index].code;
-    }
-  };
-
-  const canUndoCode = (chatId: number): boolean => {
-    const chat = chatHistory.value.find((chat) => chat.id === chatId);
-    return chat ? chat.currentHistoryIndex > 0 : false;
-  };
-
-  const canRedoCode = (chatId: number): boolean => {
-    const chat = chatHistory.value.find((chat) => chat.id === chatId);
-    return chat ? chat.currentHistoryIndex < chat.codeHistory.length - 1 : false;
-  };
-
-  const handleUndoCode = (chatId: number) => {
-    if (canUndoCode(chatId)) {
-      selectCodeHistoryItem(chatId, (chatHistory.value.find((chat) => chat.id === chatId)?.currentHistoryIndex || 1) - 1);
-    }
-  };
-
-  const handleRedoCode = (chatId: number) => {
-    if (canRedoCode(chatId)) {
-      selectCodeHistoryItem(chatId, (chatHistory.value.find((chat) => chat.id === chatId)?.currentHistoryIndex || 0) + 1);
-    }
+    return {
+      history: computed({
+        get: () => chat.codeHistory,
+        set: (value) => { chat.codeHistory = value; }
+      }),
+      currentHistoryIndex: computed({
+        get: () => chat.currentHistoryIndex,
+        set: (value) => { chat.currentHistoryIndex = value; }
+      }),
+      canUndo: computed(() => chat.currentHistoryIndex > 0),
+      canRedo: computed(() => chat.currentHistoryIndex < chat.codeHistory.length - 1),
+      selectHistoryItem: (index: number) => {
+        if (index >= 0 && index < chat.codeHistory.length) {
+          chat.currentHistoryIndex = index;
+          chat.currentCode = chat.codeHistory[index].code;
+        }
+      }
+    };
   };
 
   return {
@@ -443,13 +397,7 @@ export function useChat() {
     clearCurrentChat,
     deleteChat,
     updateCurrentCode,
-    addToCodeHistory,
     getCurrentCode,
-    getCodeHistory,
-    selectCodeHistoryItem,
-    canUndoCode,
-    canRedoCode,
-    handleUndoCode,
-    handleRedoCode,
+    getCurrentChatHistoryManager,
   };
 }

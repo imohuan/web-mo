@@ -53,13 +53,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from "vue";
+import { ref, computed, watch, onMounted, onUnmounted } from "vue";
 import AppHeader from "./components/layout/AppHeader.vue";
 import ChatSidebar from "./components/chat/ChatSidebar.vue";
 import ChatWindow from "./components/chat/ChatWindow.vue";
 import CodeEditor from "./components/editor/CodeEditor.vue";
 import { useChat } from "./composables/useChat";
-import { useCodeEditor } from "./composables/useCodeEditor";
+import { useCodeEditor, type HistoryItem } from "./composables/useCodeEditor";
 import { useMarkdown } from "./composables/useMarkdown";
 import { useLayout } from "./composables/useLayout";
 import { useModelSelection } from "./composables/useModelSelection";
@@ -77,15 +77,45 @@ const {
   clearCurrentChat,
   deleteChat,
   updateCurrentCode,
-  addToCodeHistory,
   getCurrentCode,
-  getCodeHistory,
-  selectCodeHistoryItem,
-  canUndoCode,
-  canRedoCode,
-  handleUndoCode,
-  handleRedoCode,
+  getCurrentChatHistoryManager,
 } = useChat();
+
+// 编辑器相关响应式状态
+const currentCode = ref("");
+
+// 创建当前对话的历史记录代理
+const currentHistoryProxy = computed({
+  get: () => {
+    if (currentChatId.value === null) return [];
+    const manager = getCurrentChatHistoryManager(currentChatId.value);
+    return manager ? manager.history.value : [];
+  },
+  set: (value) => {
+    if (currentChatId.value !== null) {
+      const manager = getCurrentChatHistoryManager(currentChatId.value);
+      if (manager) {
+        manager.history.value = value;
+      }
+    }
+  }
+});
+
+const currentHistoryIndexProxy = computed({
+  get: () => {
+    if (currentChatId.value === null) return 0;
+    const manager = getCurrentChatHistoryManager(currentChatId.value);
+    return manager ? manager.currentHistoryIndex.value : 0;
+  },
+  set: (value) => {
+    if (currentChatId.value !== null) {
+      const manager = getCurrentChatHistoryManager(currentChatId.value);
+      if (manager) {
+        manager.currentHistoryIndex.value = value;
+      }
+    }
+  }
+});
 
 const {
   isPreviewMode,
@@ -94,7 +124,19 @@ const {
   updateCssInHtml,
   updateJsInHtml,
   resetStreamMonitor,
-} = useCodeEditor();
+  history: codeHistory,
+  currentHistoryIndex,
+  canUndo,
+  canRedo,
+  handleUndo,
+  handleRedo,
+  selectHistoryItem,
+  addToHistory, // 直接导出 addToHistory 供测试使用
+} = useCodeEditor({
+  history: currentHistoryProxy as any,
+  currentHistoryIndex: currentHistoryIndexProxy as any,
+  currentCode,
+});
 
 const {
   renderMarkdown,
@@ -111,11 +153,6 @@ const { selectedModel, selectModel } = useModelSelection();
 const chatWindowRef = ref();
 const codeEditorRef = ref();
 
-// 编辑器相关响应式状态
-const currentCode = ref('');
-const codeHistory = ref<Array<{code: string, timestamp: number, title?: string}>>([]);
-const currentHistoryIndex = ref(0);
-
 // 方法
 const handleDeleteChat = (chatId: number) => {
   if (window.confirm("确定要删除这个对话吗？")) {
@@ -125,7 +162,7 @@ const handleDeleteChat = (chatId: number) => {
 
 // Debounce函数
 const debounce = (func: Function, delay: number) => {
-  let timeoutId: number;
+  let timeoutId: any;
   return (...args: any[]) => {
     clearTimeout(timeoutId);
     timeoutId = setTimeout(() => func(...args), delay);
@@ -138,13 +175,6 @@ const saveCodeToCurrentChat = debounce((newCode: string) => {
     updateCurrentCode(currentChatId.value, newCode);
   }
 }, 500);
-
-// 添加代码到历史记录（带debounce）
-const addHistoryToCurrentChat = debounce((code: string, title?: string) => {
-  if (currentChatId.value !== null) {
-    addToCodeHistory(currentChatId.value, code, title);
-  }
-}, 1000);
 
 const handleSendMessage = async (data: { message: string; images: string[] }) => {
   if (!data.message.trim() && data.images.length === 0) return;
@@ -180,17 +210,6 @@ const handleSendMessage = async (data: { message: string; images: string[] }) =>
   });
 };
 
-// 监听代码变化，保存到当前对话
-const handleCodeUpdate = (newCode: string) => {
-  currentCode.value = newCode;
-  saveCodeToCurrentChat(newCode);
-};
-
-// 添加代码到历史记录
-const handleAddToHistory = (code: string, title?: string) => {
-  addHistoryToCurrentChat(code, title);
-};
-
 // 处理代码差异应用事件
 const handleCodeDiffEvent = (event: CustomEvent) => {
   const { diffContent } = event.detail;
@@ -213,12 +232,10 @@ const handleCodeDiffEvent = (event: CustomEvent) => {
 };
 
 // 监听差异模式结束，保存代码到历史记录
-window.addEventListener('diffModeEnded', (event: any) => {
+window.addEventListener("diffModeEnded", (event: any) => {
   const { finalCode } = event.detail;
   console.log("差异模式结束，保存代码到历史记录:", finalCode);
-  if (currentChatId.value !== null) {
-    addHistoryToCurrentChat(finalCode, "差异对比完成");
-  }
+  // 历史记录现在由 useCodeEditor 管理，会自动添加
 });
 
 // 初始化
@@ -236,23 +253,37 @@ onMounted(() => {
     }
   });
 
+  selectChat(chatHistory.value[0].id)
+
+
   // 监听代码差异应用事件
   window.addEventListener("applyCodeDiff", handleCodeDiffEvent as EventListener);
+
+  // 测试 addToHistory 功能
+  // setTimeout(() => {
+  //   console.log("测试添加历史记录...");
+  //   console.log("当前对话ID:", currentChatId.value);
+  //   console.log("当前历史记录数量:", codeHistory.value.length);
+  //   // 直接使用导出的 addToHistory 函数
+  //   addToHistory("测试代码内容", "测试添加");
+  //   console.log("添加完成，当前历史记录数量:", codeHistory.value.length);
+  //   console.log("当前历史记录:", codeHistory.value);
+  // }, 3000);
 });
 
 // 监听当前对话变化，更新编辑器状态
-watch(currentChatId, (newChatId) => {
-  if (newChatId !== null) {
-    currentCode.value = getCurrentCode(newChatId);
-    codeHistory.value = getCodeHistory(newChatId);
-    currentHistoryIndex.value = chatHistory.value.find(chat => chat.id === newChatId)?.currentHistoryIndex || 0;
-  } else {
-    // 如果没有选中对话，使用空代码
-    currentCode.value = '';
-    codeHistory.value = [];
-    currentHistoryIndex.value = 0;
-  }
-}, { immediate: true });
+watch(
+  currentChatId,
+  (newChatId) => {
+    if (newChatId !== null) {
+      currentCode.value = getCurrentCode(newChatId);
+    } else {
+      // 如果没有选中对话，使用空代码
+      currentCode.value = "";
+    }
+  },
+  { immediate: true }
+);
 
 // 监听代码变化，同步到当前对话
 watch(currentCode, (newCode) => {
@@ -262,43 +293,10 @@ watch(currentCode, (newCode) => {
   }
 });
 
-// 计算属性：判断是否可以撤销/重做代码
-const canUndo = computed(() => currentChatId.value !== null ? canUndoCode(currentChatId.value) : false);
-const canRedo = computed(() => currentChatId.value !== null ? canRedoCode(currentChatId.value) : false);
-
-// 处理撤销代码
-const handleUndo = () => {
-  if (currentChatId.value !== null) {
-    handleUndoCode(currentChatId.value);
-    currentCode.value = getCurrentCode(currentChatId.value);
-    codeHistory.value = getCodeHistory(currentChatId.value);
-    currentHistoryIndex.value = chatHistory.value.find(chat => chat.id === currentChatId.value)?.currentHistoryIndex || 0;
-  }
-};
-
-// 处理重做代码
-const handleRedo = () => {
-  if (currentChatId.value !== null) {
-    handleRedoCode(currentChatId.value);
-    currentCode.value = getCurrentCode(currentChatId.value);
-    codeHistory.value = getCodeHistory(currentChatId.value);
-    currentHistoryIndex.value = chatHistory.value.find(chat => chat.id === currentChatId.value)?.currentHistoryIndex || 0;
-  }
-};
-
-// 处理历史记录选择
-const selectHistoryItem = (index: number) => {
-  if (currentChatId.value !== null) {
-    selectCodeHistoryItem(currentChatId.value, index);
-    currentCode.value = getCurrentCode(currentChatId.value);
-    currentHistoryIndex.value = index;
-  }
-};
-
 // 清理事件监听器
 onUnmounted(() => {
   window.removeEventListener("applyCodeDiff", handleCodeDiffEvent as EventListener);
-  window.removeEventListener('diffModeEnded', (event: any) => {
+  window.removeEventListener("diffModeEnded", (event: any) => {
     const { finalCode } = event.detail;
     console.log("清理监听器 - 差异模式结束:", finalCode);
   });
