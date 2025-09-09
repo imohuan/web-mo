@@ -1,1 +1,26 @@
 @import "tailwindcss";
+
+/* 自定义滚动条样式 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0);
+  border-radius: 4px;
+}
+
+/* 悬停时显示滚动条 */
+:hover::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+/* 移除滚动条箭头 */
+::-webkit-scrollbar-button {
+  display: none;
+}

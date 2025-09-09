@@ -19,7 +19,6 @@ import { debounce } from "lodash-es";
 import { DEFAULT_CODE, DEFAULT_FORMAT_OPTIONS } from "@/constants/config";
 const editorContainer = useTemplateRef("container");
 let editor: monaco.editor.IStandaloneCodeEditor | null = null;
-
 import FormatWorker from "@/workers/format?worker";
 
 interface FileInfo {
@@ -597,7 +596,6 @@ const updateCode = () => {
   if (!currentFile.value || !editor) return;
   const value = editor.getValue() || "";
   currentFile.value.content = value;
-
   autoApplyOptions();
   if (currentFile.value.name === "index.html") {
     modelValue.value = value;
