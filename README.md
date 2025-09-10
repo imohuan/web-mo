@@ -1,4 +1,4 @@
-# SiteCopy - Vue 3 + TypeScript + Vite
+# web-mo - Vue 3 + TypeScript + Vite
 
 一个基于 Vue 3 + TypeScript + Vite 的现代化 Web 应用项目。
 

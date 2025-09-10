@@ -14,7 +14,7 @@
 
 - **触发条件**: 推送到 `main` 分支或手动触发
 - **功能**: 构建并部署到 GitHub Pages
-- **URL**: `https://[username].github.io/sitecopy/`
+- **URL**: `https://[username].github.io/web-mo/`
 
 ### 3. 发布工作流 (`.github/workflows/release.yml`)
 
@@ -87,7 +87,7 @@ npm run server:dev
 
 ### Vite 配置优化
 
-- **基础路径**: 生产环境自动设置为 `/sitecopy/`
+- **基础路径**: 生产环境自动设置为 `/web-mo/`
 - **代码分割**: 自动分离 vendor、monaco、utils 等模块
 - **构建优化**: 启用压缩，禁用 sourcemap
 
