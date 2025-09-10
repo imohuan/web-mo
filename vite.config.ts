@@ -19,7 +19,7 @@ export default defineConfig({
     outDir: 'dist',
     assetsDir: 'assets',
     sourcemap: false,
-    minify: 'terser',
+    minify: 'esbuild',
     rollupOptions: {
       output: {
         manualChunks: {
@@ -27,6 +27,14 @@ export default defineConfig({
           monaco: ['monaco-editor'],
           utils: ['lodash-es', 'marked', 'highlight.js']
         }
+      }
+    }
+  },
+  worker: {
+    format: 'es',
+    rollupOptions: {
+      output: {
+        inlineDynamicImports: true
       }
     }
   }
