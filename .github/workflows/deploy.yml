@@ -32,16 +32,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: "npm"
+          cache: "pnpm" # 将缓存更改为 pnpm
+
+      - name: Install pnpm
+        run: npm install -g pnpm
 
       - name: Install dependencies
-        run: npm install
-
-      - name: Install dependencies
-        run: npm list
+        run: pnpm install # 使用 pnpm 安装依赖
 
       - name: Build project
-        run: npm run build:no-check
+        run: pnpm run build:no-check # 使用 pnpm 运行构建
         env:
           NODE_ENV: production
 
