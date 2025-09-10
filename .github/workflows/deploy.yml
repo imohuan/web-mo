@@ -8,7 +8,7 @@ on:
 
 # 设置 GitHub Pages 所需的权限
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
