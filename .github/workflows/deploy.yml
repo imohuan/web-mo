@@ -32,16 +32,19 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: "pnpm" # 将缓存更改为 pnpm
+          cache: "pnpm"
 
-      - name: Install pnpm
-        run: npm install -g pnpm
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3 # 使用 pnpm/action-setup 来安装 pnpm
+        with:
+          version: 8
+          run_install: false # 避免在这一步自动安装依赖，我们会在下一步手动执行
 
       - name: Install dependencies
-        run: pnpm install # 使用 pnpm 安装依赖
+        run: pnpm install
 
       - name: Build project
-        run: pnpm run build:no-check # 使用 pnpm 运行构建
+        run: pnpm run build:no-check
         env:
           NODE_ENV: production
 
