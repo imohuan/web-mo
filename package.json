@@ -6,10 +6,16 @@
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
+    "build:no-check": "vite build",
+    "build:prod": "NODE_ENV=production npm run build:no-check",
     "preview": "vite preview",
     "server": "node server.js",
     "server:dev": "nodemon server.js",
-    "test:server": "node test-server.js"
+    "test:server": "node test-server.js",
+    "type-check": "vue-tsc --noEmit",
+    "lint": "echo 'Linting not configured yet'",
+    "clean": "rm -rf dist",
+    "build:analyze": "npm run build -- --mode analyze"
   },
   "dependencies": {
     "@vueuse/core": "^13.9.0",

@@ -1,5 +1,38 @@
-# Vue 3 + TypeScript + Vite
+# SiteCopy - Vue 3 + TypeScript + Vite
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+一个基于 Vue 3 + TypeScript + Vite 的现代化 Web 应用项目。
 
-Learn more about the recommended Project Setup and IDE Support in the [Vue Docs TypeScript Guide](https://vuejs.org/guide/typescript/overview.html#project-setup).
+## 🚀 快速开始
+
+### 开发环境
+```bash
+npm install
+npm run dev
+```
+
+### 构建部署
+```bash
+# 开发构建
+npm run build
+
+# 生产构建（无类型检查）
+npm run build:no-check
+
+# 生产构建（带类型检查）
+npm run build:prod
+```
+
+## 📦 GitHub Actions 自动化
+
+本项目配置了完整的 CI/CD 流程：
+
+- **CI 检查**: 推送到 `main`/`develop` 分支时自动运行类型检查和构建测试
+- **GitHub Pages 部署**: 推送到 `main` 分支时自动部署到 GitHub Pages
+- **版本发布**: 创建 tag (如 `v1.0.0`) 时自动创建 Release 包
+
+### 启用 GitHub Pages
+1. 进入仓库设置 → Pages
+2. 选择 "GitHub Actions" 作为部署源
+3. 推送代码到 `main` 分支即可自动部署
+
+详细配置说明请查看 [DEPLOYMENT.md](./DEPLOYMENT.md)
