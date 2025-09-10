@@ -44,6 +44,7 @@
           <!-- 上传图片按钮 -->
           <label
             class="p-2 hover:bg-gray-100 rounded-lg cursor-pointer transition-colors"
+            :class="{ 'opacity-50 pointer-events-none': isStreaming }"
           >
             <ImageIcon class="w-5 h-5 text-gray-500" />
             <input
@@ -52,29 +53,37 @@
               accept="image/*"
               multiple
               class="hidden"
+              :disabled="isStreaming"
             />
           </label>
 
-          <!-- 发送按钮 -->
+          <!-- 发送/终止按钮 -->
           <button
-            @click="sendMessage"
-            :disabled="disabled || (!message.trim() && images.length === 0)"
+            @click="isStreaming ? stopStreaming() : sendMessage()"
+            :disabled="
+              !isStreaming && (disabled || (!message.trim() && images.length === 0))
+            "
             :class="[
               'p-2 rounded-lg transition-all duration-200',
-              disabled || (!message.trim() && images.length === 0)
+              isStreaming
+                ? 'bg-red-500 text-white hover:bg-red-600 shadow-sm'
+                : disabled || (!message.trim() && images.length === 0)
                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                 : 'bg-blue-500 text-white hover:bg-blue-600 shadow-sm',
             ]"
           >
-            <SendIcon class="w-5 h-5" />
+            <CloseIcon v-if="isStreaming" class="w-5 h-5" />
+            <SendIcon v-else class="w-5 h-5" />
           </button>
         </div>
       </div>
     </div>
 
     <!-- 提示文本 -->
-    <div class="mt-2 text-xs text-gray-500 text-center">
-      按 Ctrl+Enter 发送消息，支持直接粘贴图片
+    <div class="mt-2 text-xs text-gray-500 text-center hidden">
+      {{
+        isStreaming ? "点击停止按钮终止生成" : "按 Ctrl+Enter 发送消息，支持直接粘贴图片"
+      }}
     </div>
   </div>
 </template>
@@ -88,14 +97,17 @@ import CloseIcon from "@/assets/icons/close.svg?component";
 
 interface Props {
   disabled?: boolean;
+  isStreaming?: boolean;
 }
 
 interface Emits {
   (e: "send", data: { message: string; images: string[] }): void;
+  (e: "stop"): void;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   disabled: false,
+  isStreaming: false,
 });
 
 const emit = defineEmits<Emits>();
@@ -118,7 +130,9 @@ const adjustHeight = () => {
 const handleKeydown = (event: KeyboardEvent) => {
   if (event.ctrlKey && event.key === "Enter") {
     event.preventDefault();
-    sendMessage();
+    if (!props.isStreaming) {
+      sendMessage();
+    }
   }
 };
 
@@ -187,6 +201,10 @@ const convertToBase64 = (file: File): Promise<string | null> => {
 
 const removeImage = (index: number) => {
   images.value.splice(index, 1);
+};
+
+const stopStreaming = () => {
+  emit("stop");
 };
 </script>
 

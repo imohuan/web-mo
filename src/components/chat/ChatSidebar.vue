@@ -26,7 +26,7 @@
         </svg>
       </button>
 
-      <h1 v-if="!collapsed" class="text-lg font-semibold text-gray-800">Gemini</h1>
+      <h1 v-if="!collapsed" class="text-lg font-semibold text-gray-800">MO</h1>
     </div>
 
     <!-- 新对话按钮 -->
@@ -92,11 +92,6 @@
           </div>
         </div>
       </div>
-    </div>
-
-    <!-- 侧边栏底部 -->
-    <div v-if="!collapsed" class="p-4 border-t border-gray-200">
-      <div class="text-xs text-gray-500">Gemini 2.5 Pro</div>
     </div>
   </div>
 </template>

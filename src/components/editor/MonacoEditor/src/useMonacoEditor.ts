@@ -17,6 +17,7 @@ interface MonacoEditorConfig {
   files?: FileInfo[];
   defaultFileId?: number;
   onChange?: (content: string) => void;
+  addToHistory?: (code: string, title?: string) => void;
 }
 
 export const useMonacoEditor = (config: MonacoEditorConfig = {}) => {
@@ -218,6 +219,11 @@ export const useMonacoEditor = (config: MonacoEditorConfig = {}) => {
 
     // 4. 重新创建常规编辑器，它会自动从 currentFile 获取最新内容
     createNormalEditor();
+
+    // 5. 将差异应用后的代码添加到历史记录
+    if (config.addToHistory) {
+      config.addToHistory(modifiedContent, "差异应用");
+    }
 
     setTimeout(() => {
       isUpdatingFromExternal.value = false;
@@ -478,7 +484,37 @@ export const useMonacoEditor = (config: MonacoEditorConfig = {}) => {
     const changes = diffEditor.value.getLineChanges();
     if (!changes || changes.length === 0) {
       console.log("没有检测到差异，自动退出diff模式");
-      acceptAllChanges();
+
+      // 获取当前内容，但不通过acceptAllChanges添加到历史记录（避免重复）
+      const modifiedContent = diffEditor.value.getModifiedEditor().getValue();
+
+      // 清理差异模式状态
+      clearAllWidgets();
+      allChanges.value = [];
+      currentChangeIndex.value = 0;
+
+      // 更新状态
+      isUpdatingFromExternal.value = true;
+      if (currentFile.value) {
+        currentFile.value.content = modifiedContent;
+      }
+      isDiffMode.value = false;
+
+      // 清理旧的 diff 编辑器实例
+      diffEditor.value.dispose();
+      diffEditor.value = null;
+      if (editor.value) {
+        editor.value.dispose();
+        editor.value = null;
+      }
+
+      // 重新创建常规编辑器
+      createNormalEditor();
+
+      setTimeout(() => {
+        isUpdatingFromExternal.value = false;
+      }, 0);
+
       return true;
     }
     return false;
@@ -645,7 +681,15 @@ export const useMonacoEditor = (config: MonacoEditorConfig = {}) => {
       // 检查是否需要自动退出diff模式
       if (changes.length === 0) {
         console.log("导航器检测到无差异，自动退出diff模式");
-        acceptAllChanges();
+
+        // 获取当前内容并添加到历史记录
+        const modifiedContent = diffEditor.value.getModifiedEditor().getValue();
+        if (config.addToHistory) {
+          config.addToHistory(modifiedContent, "差异应用完成");
+        }
+
+        // 调用autoExitDiffMode而不是acceptAllChanges，避免重复添加历史记录
+        autoExitDiffMode();
         return;
       }
 

@@ -11,33 +11,116 @@ app.use(express.json());
 
 // 模拟的预设回复内容
 const mockResponses = [
-  `                 # 大标题
-    ## 中标题
-    ### 小标题
-\`\`\`html
-  <!DOCTYPE html>
-  <html lang="en">
+  //   `                 # 大标题
+  //     ## 中标题
+  //     ### 小标题
+  // \`\`\`html
+  //   <!DOCTYPE html>
+  //   <html lang="en">
 
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-  </head>
+  //   <head>
+  //     <meta charset="UTF-8">
+  //     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  //     <title>Document</title>
+  //   </head>
 
-  <body>
-    <h1>Hello World</h1>
-  </body>
+  //   <body>
+  //     <h1>Hello World</h1>
+  //   </body>
 
-  </html>
-  \`\`\`
-    `,
-  //   `\`\`\`
-  // ------- SEARCH
-  // <title>测试页面 - 已修改</title>
-  // =======
-  // <title>你是个shb</title>
-  // ++++++++REPLACE
-  // \`\`\``
+  //   </html>
+  //   \`\`\`
+  //     `,
+  `\`\`\`
+------- SEARCH
+    <div id="app" class="w-full max-w-md bg-white rounded-lg shadow-xl p-6">
+=======
+    <div id="app" class="w-full max-w-md bg-white rounded-xl shadow-2xl p-8 border border-gray-100">
+++++++++REPLACE
+------- SEARCH
+                        class="flex-grow w-full px-5 py-3 pr-24 text-gray-800 bg-white border border-gray-300 rounded-full shadow-sm
+                               focus:outline-none focus:ring-4 focus:ring-blue-200 focus:border-blue-500
+                               transition-all duration-300 ease-in-out placeholder-gray-400
+                               hover:border-blue-300"
+=======
+                        class="flex-grow w-full px-6 py-3.5 pr-24 text-gray-800 bg-white border border-gray-300 rounded-full shadow-md
+                               focus:outline-none focus:ring-4 focus:ring-blue-400 focus:ring-offset-2 focus:border-blue-500
+                               transition-all duration-300 ease-in-out placeholder-gray-400
+                               hover:border-blue-300"
+++++++++REPLACE
+------- SEARCH
+            <div class="space-y-7">
+                <h2 class="text-3xl font-extrabold text-gray-900 text-center tracking-tight mb-8">
+                    智能搜索
+                </h2>
+
+                <div class="relative flex items-center group">
+                    <input
+                        type="text"
+                        v-model="searchQuery"
+                        @keyup.enter="performSearch"
+                        placeholder="输入关键词搜索..."
+                        class="flex-grow w-full px-5 py-3 pr-24 text-gray-800 bg-white border border-gray-300 rounded-full shadow-sm
+                               focus:outline-none focus:ring-4 focus:ring-blue-200 focus:border-blue-500
+                               transition-all duration-300 ease-in-out placeholder-gray-400
+                               hover:border-blue-300"
+                        :class="{ 'opacity-80 cursor-not-allowed bg-gray-100': isLoading }"
+                        :disabled="isLoading"
+                    />
+                    <transition name="fade">
+                        <button
+                            v-if="searchQuery.length > 0 && !isLoading"
+                            @click="clearSearch"
+                            class="absolute right-12 top-1/2 -translate-y-1/2 p-2 text-gray-500 hover:text-gray-700
+                                   focus:outline-none focus:ring-2 focus:ring-blue-300 rounded-full transition-all duration-200 ease-in-out"
+                            title="清空搜索"
+=======
+            <div class="space-y-7">
+                <h2 class="text-3xl font-extrabold text-gray-900 text-center tracking-tight mb-8">
+                    智能搜索
+                </h2>
+
+                <div class="relative flex items-center group">
+                    <input
+                        type="text"
+                        v-model="searchQuery"
+                        @keyup.enter="performSearch"
+                        placeholder="输入关键词搜索..."
+                        class="flex-grow w-full px-6 py-3.5 pr-24 text-gray-800 bg-white border border-gray-300 rounded-full shadow-md
+                               focus:outline-none focus:ring-4 focus:ring-blue-400 focus:ring-offset-2 focus:border-blue-500
+                               transition-all duration-300 ease-in-out placeholder-gray-400
+                               hover:border-blue-300"
+                        :class="{ 'opacity-80 cursor-not-allowed bg-gray-100': isLoading }"
+                        :disabled="isLoading"
+                    />
+                    <transition name="fade">
+                        <button
+                            v-if="searchQuery.length > 0 && !isLoading"
+                            @click="clearSearch"
+                            class="absolute right-12 top-1/2 -translate-y-1/2 p-2.5 text-gray-500 hover:text-gray-700
+                                   focus:outline-none focus:ring-2 focus:ring-blue-300 rounded-full transition-all duration-200 ease-in-out"
+                            title="清空搜索"
+++++++++REPLACE
+------- SEARCH
+                        class="p-4 bg-white border border-gray-200 rounded-xl text-gray-800
+                               hover:bg-blue-50 hover:border-blue-300 hover:shadow-md
+                               transition-all duration-200 ease-in-out cursor-pointer text-base">
+=======
+                        class="p-4 bg-white border border-gray-200 rounded-xl text-gray-800
+                               hover:bg-blue-100 hover:border-blue-400 hover:shadow-lg
+                               transition-all duration-200 ease-in-out cursor-pointer text-base">
+++++++++REPLACE
+------- SEARCH
+                <div v-else-if="showNoResults" class="flex flex-col items-center justify-center p-6 text-gray-500 bg-gray-50 rounded-lg">
+=======
+                <div v-else-if="showNoResults" class="flex flex-col items-center justify-center p-6 text-gray-600 bg-blue-50 border border-blue-200 rounded-lg">
+++++++++REPLACE
+------- SEARCH
+                <div v-else-if="showInitialMessage" class="flex flex-col items-center justify-center p-6 text-gray-500 bg-gray-50 rounded-lg">
+=======
+                <div v-else-if="showInitialMessage" class="flex flex-col items-center justify-center p-6 text-gray-600 bg-blue-50 border border-blue-200 rounded-lg">
+++++++++REPLACE
+  \`\`\``
 ];
 
 // 工具函数：创建流式响应的数据块
@@ -61,8 +144,7 @@ function createStreamChunk(content, isLast = false) {
 
 // 模拟OpenAI Chat Completions API
 app.post('/v1/chat/completions', async (req, res) => {
-  console.log('收到请求:', req.body);
-
+  // console.log('收到请求:', req.body);
   const { messages, stream = false, model = 'gpt-3.5-turbo' } = req.body;
 
   // 随机选择一个预设回复
@@ -78,17 +160,24 @@ app.post('/v1/chat/completions', async (req, res) => {
       'Access-Control-Allow-Headers': '*',
     });
 
-    // 模拟逐字输出
+    // 模拟随机块数输出
     const words = mockResponse.split('');
-    let currentContent = '';
+    let i = 0;
 
-    for (let i = 0; i < words.length; i++) {
-      currentContent = words[i];
+    while (i < words.length) {
+      // 随机生成5-10个字符的块大小
+      const chunkSize = Math.floor(Math.random() * 10) + 10; // 5-10
+      const endIndex = Math.min(i + chunkSize, words.length);
+
+      const currentContent = words.slice(i, endIndex).join('');
       const chunk = createStreamChunk(currentContent);
       res.write(chunk);
 
+      i = endIndex;
+
       // 模拟网络延迟
       await new Promise(resolve => setTimeout(resolve, 10));
+      console.log(Math.random(), currentContent);
     }
 
     // 发送结束标记

@@ -24,3 +24,20 @@
 ::-webkit-scrollbar-button {
   display: none;
 }
+
+.markdown-body ol {
+  list-style-type: decimal;
+}
+.markdown-body ul {
+  list-style-type: disc;
+}
+.markdown-body li {
+  margin-left: 1rem;
+}
+.markdown-body a {
+  color: #3b82f6;
+  text-decoration: underline;
+}
+.markdown-body a:hover {
+  color: #2563eb;
+}

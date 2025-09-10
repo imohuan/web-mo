@@ -27,6 +27,9 @@
           :render-markdown="renderMarkdown"
           :format-time="formatTime"
           @send-message="handleSendMessage"
+          @stop-streaming="handleStopStreaming"
+          @delete-message="handleDeleteMessage"
+          @retry-message="handleRetryMessage"
           @model-change="selectModel"
           @clear-chat="clearCurrentChat"
         />
@@ -41,6 +44,7 @@
           :can-redo="canRedo"
           :history="codeHistory"
           :current-history-index="currentHistoryIndex"
+          :addToHistory="addToHistory"
           @toggle-preview="isPreviewMode = !isPreviewMode"
           @undo="handleUndo"
           @redo="handleRedo"
@@ -63,6 +67,7 @@ import { useCodeEditor, type HistoryItem } from "./composables/useCodeEditor";
 import { useMarkdown } from "./composables/useMarkdown";
 import { useLayout } from "./composables/useLayout";
 import { useModelSelection } from "./composables/useModelSelection";
+import { useEventListener } from "@vueuse/core";
 
 // 使用组合式函数
 const {
@@ -70,15 +75,20 @@ const {
   activeChatId: currentChatId,
   currentMessages,
   isLoading,
+  hasStreamingMessage,
   createNewChat,
   selectChat,
   addUserMessage,
   sendAIRequest,
+  stopStreaming,
   clearCurrentChat,
   deleteChat,
+  deleteMessage,
+  retryMessage,
   updateCurrentCode,
   getCurrentCode,
   getCurrentChatHistoryManager,
+  checkAndCleanupStreamingMessages,
 } = useChat();
 
 // 编辑器相关响应式状态
@@ -132,6 +142,7 @@ const {
   handleRedo,
   selectHistoryItem,
   addToHistory, // 直接导出 addToHistory 供测试使用
+  applyCodeFromMarkdown,
 } = useCodeEditor({
   history: currentHistoryProxy as any,
   currentHistoryIndex: currentHistoryIndexProxy as any,
@@ -143,6 +154,7 @@ const {
   formatTime,
   setupCopyCodeFunction,
   setCodePreviewHandler,
+  setCodeApplyHandler,
 } = useMarkdown();
 
 const { sidebarCollapsed, toggleSidebar } = useLayout();
@@ -210,6 +222,49 @@ const handleSendMessage = async (data: { message: string; images: string[] }) =>
   });
 };
 
+const handleStopStreaming = () => {
+  stopStreaming();
+};
+
+const handleDeleteMessage = (message: any) => {
+  deleteMessage(message.id);
+};
+
+const handleRetryMessage = async (message: any) => {
+  // 对于AI消息，我们需要找到它前面的用户消息来重试
+  const messages = currentMessages.value;
+  const messageIndex = messages.findIndex(m => m.id === message.id);
+
+  if (messageIndex > 0) {
+    const previousMessage = messages[messageIndex - 1];
+    if (previousMessage.role === 'user') {
+      // 删除AI消息及其之后的消息
+      const result = retryMessage(message.id, previousMessage.content, previousMessage.images || []);
+      if (result.shouldResend) {
+        // 重新发送消息
+        resetStreamMonitor();
+        await sendAIRequest(result.message, result.images, currentCode.value, (content: string) => {
+          extractHtmlFromMarkdown(content);
+
+          // 检测CSS代码
+          const cssMatch = content.match(/```css\s*([\s\S]*?)```/i);
+          if (cssMatch && cssMatch[1]) {
+            updateCssInHtml(cssMatch[1].trim());
+          }
+
+          // 检测JavaScript代码
+          const jsMatch = content.match(/```javascript\s*([\s\S]*?)```/i);
+          if (jsMatch && jsMatch[1]) {
+            updateJsInHtml(jsMatch[1].trim());
+          }
+
+          chatWindowRef.value?.scrollToBottom();
+        });
+      }
+    }
+  }
+};
+
 // 处理代码差异应用事件
 const handleCodeDiffEvent = (event: CustomEvent) => {
   const { diffContent } = event.detail;
@@ -238,8 +293,20 @@ window.addEventListener("diffModeEnded", (event: any) => {
   // 历史记录现在由 useCodeEditor 管理，会自动添加
 });
 
+useEventListener("keydown", (event) => {
+  if (event.key === "Tab") {
+    event.preventDefault();
+    event.stopPropagation();
+    // 切换侧边框显示
+    toggleSidebar()
+  }
+})
+
 // 初始化
 onMounted(() => {
+  // 检查并清理页面刷新后遗留的流式消息状态
+  checkAndCleanupStreamingMessages();
+
   setupCopyCodeFunction();
 
   // 设置代码预览处理器
@@ -251,6 +318,12 @@ onMounted(() => {
         isPreviewMode.value = !isPreviewMode.value;
       }
     }
+  });
+
+  // 设置代码应用处理器
+  setCodeApplyHandler((code: string, lang: string) => {
+    console.log("应用代码被调用:", { code: code.substring(0, 100), lang });
+    applyCodeFromMarkdown(code, lang);
   });
 
   selectChat(chatHistory.value[0].id)

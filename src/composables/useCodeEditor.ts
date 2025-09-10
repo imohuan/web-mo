@@ -316,6 +316,33 @@ ${extractedHtml}
     return false;
   };
 
+  // 应用代码的函数（用于markdown按钮调用）
+  const applyCodeFromMarkdown = (code: string, language: string) => {
+    console.log("应用代码到编辑器:", { language, codeLength: code.length });
+
+    // 先检查是否是差异格式
+    if (detectAndApplyDiff(code)) {
+      console.log("应用了差异格式代码");
+      return;
+    }
+
+    // 根据语言类型处理代码
+    if (language === "html" || language === "" || code.includes("<!DOCTYPE") || code.includes("<html")) {
+      processHtmlContent(code.trim());
+    } else if (language === "css") {
+      updateCssInHtml(code.trim());
+    } else if (language === "javascript" || language === "js") {
+      updateJsInHtml(code.trim());
+    } else {
+      // 对于其他类型的代码，尝试作为完整HTML处理
+      if (code.includes("<") && code.includes(">")) {
+        processHtmlContent(code.trim());
+      } else {
+        console.log("无法识别的代码类型，跳过应用");
+      }
+    }
+  };
+
   const extractHtmlFromMarkdown = (content: string) => {
     // 只需要运行流式监听器，它会自动处理所有代码块
     // 包括HTML代码块，通过 handleCompleteCodeBlock -> processHtmlContent
@@ -434,5 +461,7 @@ ${extractedHtml}
     isInCodeBlock,
     codeBlockBuffer,
     detectionBuffer,
+    // 新增：代码应用功能
+    applyCodeFromMarkdown,
   };
 }

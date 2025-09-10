@@ -18,11 +18,16 @@ const escapeHTML = (str: string) =>
   );
 
 export function useMarkdown() {
-  // 可选的回调函数，用于处理代码预览
+  // 可选的回调函数，用于处理代码预览和应用
   let onCodePreview: ((code: string, lang: string) => void) | null = null;
+  let onCodeApply: ((code: string, lang: string) => void) | null = null;
 
   const setCodePreviewHandler = (handler: (code: string, lang: string) => void) => {
     onCodePreview = handler;
+  };
+
+  const setCodeApplyHandler = (handler: (code: string, lang: string) => void) => {
+    onCodeApply = handler;
   };
 
   const renderMarkdown = (content: string): string => {
@@ -66,6 +71,9 @@ export function useMarkdown() {
               </button>`
             : ""
           }
+              <button onclick="applyCode(this, '${language}')" class="code-action-btn p-1.5 rounded text-gray-500 hover:text-gray-700 hover:bg-gray-200 transition-all" title="应用到编辑器">
+                ${icons.codeIcon}
+              </button>
               <button onclick="copyCode(this)" class="code-action-btn p-1.5 rounded text-gray-500 hover:text-gray-700 hover:bg-gray-200 transition-all" title="复制代码">
                 ${icons.copyIcon}
               </button>
@@ -185,6 +193,27 @@ export function useMarkdown() {
       }
     };
 
+    // 全局函数：应用代码
+    (window as any).applyCode = function (button: HTMLElement, lang: string) {
+      const codeBlock = button.closest(".code-block");
+      const code = codeBlock?.querySelector("code")?.textContent;
+
+      if (code && onCodeApply) {
+        onCodeApply(code, lang);
+
+        const icons = getMarkdownButtonIcons();
+        // 显示反馈 - 和复制按钮一样的效果
+        const originalText = button.innerHTML;
+        button.innerHTML = icons.checkIcon;
+        button.style.color = "#10b981";
+
+        setTimeout(() => {
+          button.innerHTML = originalText;
+          button.style.color = "";
+        }, 2000); // 和复制按钮保持一致的2秒延迟
+      }
+    };
+
     // 全局函数：折叠/展开代码
     (window as any).toggleCodeFold = function (button: HTMLElement) {
       const codeBlock = button.closest(".code-block");
@@ -212,5 +241,6 @@ export function useMarkdown() {
     formatTime,
     setupCopyCodeFunction,
     setCodePreviewHandler,
+    setCodeApplyHandler,
   };
 }

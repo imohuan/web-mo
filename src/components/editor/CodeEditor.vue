@@ -22,18 +22,19 @@
 
       <!-- 编辑器内容 -->
       <div class="flex-1 relative">
-        <!-- Monaco编辑器 -->
-        <div v-if="!isPreviewMode" class="h-full">
+        <!-- Monaco编辑器 (始终存在，保持diff模式状态) -->
+        <div class="h-full">
           <MonacoEditor
             ref="editorRef"
             :value="currentCode"
+            :addToHistory="props.addToHistory"
             @update:value="handleCodeUpdate"
             class="h-full"
           />
         </div>
 
-        <!-- HTML预览 -->
-        <div v-else class="h-full">
+        <!-- HTML预览覆盖层 -->
+        <div v-if="isPreviewMode" class="absolute inset-0 z-5 bg-white">
           <iframe
             ref="previewFrame"
             class="w-full h-full border-0"
@@ -64,6 +65,7 @@ interface Props {
   canRedo?: boolean;
   history?: HistoryItem[];
   currentHistoryIndex?: number;
+  addToHistory?: (code: string, title?: string) => void;
 }
 
 interface Emits {
@@ -75,7 +77,7 @@ interface Emits {
   (e: "history-select", index: number): void;
 }
 
-defineProps<Props>();
+const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
 const editorRef = ref();

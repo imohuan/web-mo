@@ -97,6 +97,7 @@ interface MonacoEditorProps {
   value?: string;
   height?: string | number;
   readonly?: boolean;
+  addToHistory?: (code: string, title?: string) => void;
 }
 
 interface MonacoEditorEmits {
@@ -146,6 +147,7 @@ const {
   onChange: (content: string) => {
     emit("update:value", content);
   },
+  addToHistory: props.addToHistory,
 });
 
 // 初始化

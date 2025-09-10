@@ -1,11 +1,25 @@
 <template>
   <div class="h-full space-y-6 overflow-y-auto pr-2 pb-2">
+    <!-- 消息数量限制提示 -->
     <div
-      v-for="message in messages"
+      v-if="props.messages.length > messageSettings.maxMessages"
+      class="text-center py-2"
+    >
+      <div
+        class="inline-block px-3 py-1 bg-yellow-100 text-yellow-800 text-sm rounded-full"
+      >
+        显示最近 {{ messageSettings.maxMessages }} 条消息，共
+        {{ props.messages.length }} 条
+      </div>
+    </div>
+
+    <div
+      v-for="message in displayMessages"
       :key="message.id"
       :class="[
-        'flex gap-4 message-enter-active',
+        'flex gap-4 group',
         message.role === 'user' ? 'justify-end' : 'justify-start',
+        messageSettings.messageAnimation ? 'message-enter-active' : '',
       ]"
     >
       <!-- 头像 -->
@@ -19,15 +33,23 @@
       <!-- 消息内容 -->
       <div
         :class="[
-          'max-w-3xl rounded-lg px-4 py-3 shadow-sm overflow-x-hidden',
+          'max-w-3xl rounded-lg px-4 py-3 shadow-sm overflow-x-hidden min-w-32 flex flex-col gap-2',
           message.role === 'user'
             ? 'bg-blue-500 text-white'
-            : 'w-10/12 bg-white text-gray-800 border border-gray-200',
+            : 'w-11/12 bg-white text-gray-800 border border-gray-200',
         ]"
       >
-        <!-- 如果是助手消息，使用markdown渲染 -->
+        <!-- 如果是助手消息，根据设置决定是否使用markdown渲染 -->
         <div v-if="message.role === 'assistant'" class="relative">
-          <div v-html="renderMarkdown(message.content)" class="markdown-body"></div>
+          <div
+            v-if="messageSettings.enableMarkdown"
+            v-html="renderMarkdown(message.content)"
+            :class="[
+              'markdown-body',
+              !messageSettings.codeHighlight ? 'no-highlight' : '',
+            ]"
+          ></div>
+          <div v-else class="whitespace-pre-wrap">{{ message.content }}</div>
         </div>
         <div v-else class="whitespace-pre-wrap">{{ message.content }}</div>
 
@@ -46,10 +68,39 @@
           />
         </div>
 
-        <div class="w-full flex justify-between items-center mt-2">
+        <div class="w-full flex justify-between items-center">
           <!-- xs 时间戳 -->
-          <div v-if="!message.isStreaming" class="text-xs opacity-70">
+          <div
+            v-if="!message.isStreaming && messageSettings.showTimestamp"
+            class="text-xs opacity-70"
+          >
             {{ formatTime(message.timestamp) }}
+          </div>
+          <div v-else-if="!message.isStreaming && !messageSettings.showTimestamp"></div>
+
+          <!-- 消息操作按钮 -->
+          <div
+            v-if="!message.isStreaming"
+            class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            <!-- 重试按钮（仅AI消息显示） -->
+            <button
+              v-if="message.role === 'assistant'"
+              @click="retryMessage(message)"
+              class="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded transition-all"
+              title="重新生成"
+            >
+              <RefreshIcon class="w-4 h-4" />
+            </button>
+
+            <!-- 删除按钮 -->
+            <button
+              @click="deleteMessage(message)"
+              class="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-all"
+              title="删除消息"
+            >
+              <CloseIcon class="w-4 h-4" />
+            </button>
           </div>
 
           <div
@@ -73,8 +124,12 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue";
 import type { ChatMessage } from "@/composables/useChat";
+import { useSettings } from "@/composables/useSettings";
 import LoaddingSvg from "@/assets/icons/loadding.svg?component";
+import RefreshIcon from "@/assets/icons/refresh.svg?component";
+import CloseIcon from "@/assets/icons/close.svg?component";
 
 interface Props {
   messages: ChatMessage[];
@@ -82,10 +137,38 @@ interface Props {
   formatTime: (date: Date) => string;
 }
 
-defineProps<Props>();
+interface Emits {
+  (e: "delete-message", message: ChatMessage): void;
+  (e: "retry-message", message: ChatMessage): void;
+}
+
+const props = defineProps<Props>();
+const emit = defineEmits<Emits>();
+
+// 获取设置
+const { messageSettings } = useSettings();
+
+// 根据设置限制消息数量
+const displayMessages = computed(() => {
+  const maxMessages = messageSettings.value.maxMessages;
+  if (props.messages.length <= maxMessages) {
+    return props.messages;
+  }
+  return props.messages.slice(-maxMessages);
+});
 
 const previewImage = (imageUrl: string) => {
   window.open(imageUrl, "_blank");
+};
+
+const deleteMessage = (message: ChatMessage) => {
+  if (confirm("确定要删除这条消息吗？")) {
+    emit("delete-message", message);
+  }
+};
+
+const retryMessage = (message: ChatMessage) => {
+  emit("retry-message", message);
 };
 </script>
 
@@ -145,6 +228,16 @@ const previewImage = (imageUrl: string) => {
 /* 语法高亮样式覆盖 */
 .markdown-body :deep(.hljs) {
   background: #f8f9fa !important;
+  color: #24292e !important;
+}
+
+/* 禁用代码高亮时的样式 */
+.markdown-body.no-highlight :deep(.hljs) {
+  background: #f8f9fa !important;
+  color: #24292e !important;
+}
+
+.markdown-body.no-highlight :deep(.hljs *) {
   color: #24292e !important;
 }
 
