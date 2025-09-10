@@ -14,7 +14,7 @@ export default defineConfig({
   },
   plugins: [vue(), tailwindcss(), svgLoader()],
   // GitHub Pages 部署配置
-  base: process.env.NODE_ENV === 'production' ? '/sitecopy/' : '/',
+  base: process.env.NODE_ENV === 'production' ? '/web-mo/' : '/',
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
